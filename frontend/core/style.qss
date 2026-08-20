@@ -1,0 +1,228 @@
+/* Premium QSS Stylesheet - Flight Assistant Dark Theme */
+
+/* General Window Properties */
+QWidget {
+    background-color: #0f1016;
+    color: #e2e8f0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+}
+
+/* Scroll Area */
+QScrollArea {
+    border: none;
+    background-color: transparent;
+}
+
+/* Sidebar and Main Panels styling */
+QFrame#sidebar {
+    background-color: #161925;
+    border-right: 1px solid #232d3f;
+}
+
+QFrame#mainContent {
+    background-color: #0f1016;
+}
+
+QFrame#card {
+    background-color: #161925;
+    border: 1px solid #232d3f;
+    border-radius: 12px;
+}
+
+/* Headings */
+QLabel#title {
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+QLabel#subtitle {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+QLabel#sectionHeader {
+    color: #38bdf8;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Interactive elements: Line Edits */
+QLineEdit {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #ffffff;
+}
+
+QLineEdit:focus {
+    border: 1px solid #4f46e5;
+    background-color: #0f172a;
+}
+
+/* Buttons styling */
+QPushButton {
+    background-color: #4f46e5;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #6366f1;
+}
+
+QPushButton:pressed {
+    background-color: #4338ca;
+}
+
+QPushButton:disabled {
+    background-color: #334155;
+    color: #64748b;
+}
+
+/* Secondary Button style */
+QPushButton#secondaryButton {
+    background-color: #334155;
+    color: #f1f5f9;
+}
+
+QPushButton#secondaryButton:hover {
+    background-color: #475569;
+}
+
+QPushButton#secondaryButton:pressed {
+    background-color: #1e293b;
+}
+
+/* Cancel / Destructive Button style */
+QPushButton#cancelButton {
+    background-color: #ef4444;
+    color: #ffffff;
+}
+
+QPushButton#cancelButton:hover {
+    background-color: #f87171;
+}
+
+QPushButton#cancelButton:pressed {
+    background-color: #dc2626;
+}
+
+/* Navigation button item in Sidebar */
+QPushButton#navButton {
+    background-color: transparent;
+    color: #94a3b8;
+    text-align: left;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+QPushButton#navButton:hover {
+    background-color: #1e293b;
+    color: #ffffff;
+}
+
+QPushButton#navButton:checked {
+    background-color: #4f46e5;
+    color: #ffffff;
+}
+
+/* Text Editors */
+QTextEdit {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px;
+    color: #f8fafc;
+}
+
+QTextEdit:focus {
+    border: 1px solid #4f46e5;
+}
+
+/* Tables styling */
+QTableWidget {
+    background-color: #161925;
+    border: 1px solid #232d3f;
+    gridline-color: #232d3f;
+    border-radius: 8px;
+    color: #e2e8f0;
+}
+
+QTableWidget::item {
+    padding: 10px;
+    border-bottom: 1px solid #232d3f;
+}
+
+QTableWidget::item:selected {
+    background-color: #4f46e5;
+    color: #ffffff;
+}
+
+QHeaderView::section {
+    background-color: #1e293b;
+    color: #38bdf8;
+    padding: 8px;
+    border: none;
+    font-weight: bold;
+}
+
+/* Comboboxes */
+QComboBox {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #ffffff;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    selection-background-color: #4f46e5;
+    selection-color: #ffffff;
+}
+
+/* Message / Status Labels */
+QLabel#errorLabel {
+    color: #f87171;
+    font-weight: bold;
+}
+
+QLabel#successLabel {
+    color: #4ade80;
+    font-weight: bold;
+}
+
+/* Scrollbars */
+QScrollBar:vertical {
+    border: none;
+    background: #0f1016;
+    width: 10px;
+    margin: 0px 0px 0px 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: #334155;
+    min-height: 20px;
+    border-radius: 5px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #475569;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}

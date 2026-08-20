@@ -1,0 +1,29 @@
+# Core Backend Web Framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# Database & Event Sourcing
+SQLAlchemy>=2.0.0
+
+# Security & Authentication
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.9
+bcrypt>=4.0.0
+
+# Desktop GUI Subsystem
+PySide6>=6.5.0
+
+# AI Advisor & RAG
+sentence-transformers>=2.5.0
+ollama>=0.1.7
+
+# External Integrations
+httpx>=0.27.0
+cloudinary>=1.39.0
+
+# Utilities
+python-dotenv>=1.0.1
+numpy>=1.26.0

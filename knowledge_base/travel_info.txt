@@ -1,0 +1,41 @@
+=== TRAVEL POLICY & BOOKING CONDITIONS DOCUMENT ===
+
+[SECTION: BOOKING & RESERVATIONS]
+- Tickets are personal, non-transferable, and valid only for the named passenger.
+- Passenger details (full name and passport number) must match the passport exactly. Any mismatch may prevent boarding.
+- Changes to destination or flight number can be requested up to 24 hours before flight departure, subject to a change fee of $50 per ticket plus any fare difference.
+
+[SECTION: CANCELLATIONS & REFUNDS]
+- Full Refund: Bookings cancelled within 24 hours of purchase are eligible for a 100% refund, provided the booking was made at least 7 days before departure.
+- Standard Cancellation: Cancellations made more than 72 hours before flight departure are subject to a cancellation fee of 20% of the ticket price. The remainder is refunded to the original payment method.
+- Late Cancellation: Cancellations made between 24 and 72 hours prior to departure are subject to a 50% cancellation fee.
+- No-Refund window: Cancellations within 24 hours of flight departure, or failure to check-in (no-show), are 100% non-refundable.
+
+[SECTION: BAGGAGE ALLOWANCE]
+- Cabin Baggage (Carry-on): Passengers are allowed one piece of hand luggage up to 8kg (maximum dimensions 55 x 40 x 23 cm) and one small personal item (handbag or laptop bag) which must fit under the seat.
+- Checked Baggage: Standard economy tickets include one piece of checked luggage up to 23kg. Business class tickets include two checked bags up to 32kg each.
+- Excess Baggage Fees: Overweight checked luggage (24kg to 32kg) is subject to an additional fee of $75. Heavy baggage exceeding 32kg is not accepted for transport.
+
+[SECTION: DESTINATION TRAVEL GUIDE - PARIS]
+- Entry Requirements: EU citizens require a valid national ID card. Non-EU citizens require a passport valid for at least 3 months beyond departure date. Schengen visa rules apply.
+- Local Weather: Paris has a temperate climate. Summers are warm (20-30°C) and winters are cool (3-8°C).
+- Highlight Attractions: Eiffel Tower, Louvre Museum, Notre-Dame Cathedral, Arc de Triomphe, and Seine River cruises.
+- Local currency: Euro (EUR).
+
+[SECTION: DESTINATION TRAVEL GUIDE - TOKYO]
+- Entry Requirements: Passports must be valid for the duration of stay. Tourists from many nations are eligible for a 90-day visa-exempt status.
+- Local Weather: Tokyo is humid subtropical. Cherry blossom season (Spring, late March to April) and autumn foliage (November) are popular times. Summers are hot/humid (26-35°C), winters are cold (2-10°C).
+- Highlight Attractions: Senso-ji Temple, Shibuya Crossing, Tokyo Skytree, Meiji Shrine, and Akihabara.
+- Local currency: Japanese Yen (JPY).
+
+[SECTION: DESTINATION TRAVEL GUIDE - LONDON]
+- Entry Requirements: Valid passport required. Most EU, US, and Commonwealth citizens do not require a visa for tourist visits up to 6 months.
+- Local Weather: London has a temperate maritime climate. Rain is frequent throughout the year, but usually light. Temperatures range from 2-9°C in winter and 15-24°C in summer.
+- Highlight Attractions: British Museum, Tower of London, London Eye, Buckingham Palace, and Big Ben.
+- Local currency: British Pound Sterling (GBP).
+
+[SECTION: DESTINATION TRAVEL GUIDE - NEW YORK]
+- Entry Requirements: International travelers must hold a passport valid for at least 6 months and obtain ESTA authorization (Electronic System for Travel Authorization) prior to boarding.
+- Local Weather: Continental climate. Hot summers (22-30°C) and cold, snowy winters (-2 to 4°C).
+- Highlight Attractions: Statue of Liberty, Central Park, Times Square, Empire State Building, and Broadway theaters.
+- Local currency: United States Dollar (USD).
