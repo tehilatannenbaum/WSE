@@ -107,3 +107,11 @@ def read_root():
         "version": "1.0.0",
         "documentation": "/docs"
     }
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "Healthy",
+        "service": "Flight & Travel Assistant Gateway Server",
+        "version": "1.0.0"
+    }

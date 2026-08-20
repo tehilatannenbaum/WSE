@@ -66,18 +66,23 @@ class AIAdvisorView(QWidget):
             self.query_input.setFocus()
 
     def append_user_message(self, message: str):
-        formatted = f'<p style="color: #38bdf8; margin: 4px 0;"><b>👤 You:</b> {message}</p>'
+        import html
+        escaped = html.escape(message)
+        formatted = f'<p style="color: #38bdf8; margin: 4px 0;"><b>👤 You:</b> {escaped}</p>'
         self.chat_history.append(formatted)
 
     def append_advisor_message(self, message: str, is_fallback: bool = False):
+        import html
         color = "#10b981" if not is_fallback else "#f59e0b"
         prefix = "🤖 Advisor" if not is_fallback else "⚠️ Advisor (Offline database)"
         
-        # Replace newlines with HTML breaks
-        formatted_message = message.replace("\n", "<br>")
-        formatted = f'<p style="color: {color}; margin: 8px 0;"><b>{prefix}:</b> {formatted_message}</p>'
+        # Escape then replace newlines with HTML breaks
+        escaped_message = html.escape(message).replace("\n", "<br>")
+        formatted = f'<p style="color: {color}; margin: 8px 0;"><b>{prefix}:</b> {escaped_message}</p>'
         self.chat_history.append(formatted)
 
     def append_system_message(self, message: str):
-        formatted = f'<p style="color: #94a3b8; font-style: italic; margin: 4px 0;">💬 {message}</p>'
+        import html
+        escaped = html.escape(message)
+        formatted = f'<p style="color: #94a3b8; font-style: italic; margin: 4px 0;">💬 {escaped}</p>'
         self.chat_history.append(formatted)

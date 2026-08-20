@@ -24,6 +24,7 @@ class FlightResponse(BaseModel):
 def search_flights(
     origin: str | None = None,
     destination: str | None = None,
+    date: str | None = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(FlightRead)
@@ -32,6 +33,8 @@ def search_flights(
         query = query.filter(FlightRead.origin.ilike(f"%{origin.strip()}%"))
     if destination and destination.strip():
         query = query.filter(FlightRead.destination.ilike(f"%{destination.strip()}%"))
+    if date and date.strip():
+        query = query.filter(FlightRead.departure_time.like(f"{date.strip()}%"))
         
     return query.all()
 

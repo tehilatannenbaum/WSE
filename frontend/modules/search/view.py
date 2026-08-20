@@ -35,6 +35,10 @@ class SearchView(QWidget):
         self.dest_input.setPlaceholderText("Destination (e.g. Paris)")
         search_row.addWidget(self.dest_input)
 
+        self.date_input = QLineEdit()
+        self.date_input.setPlaceholderText("Date (YYYY-MM-DD)")
+        search_row.addWidget(self.date_input)
+
         self.search_btn = QPushButton("Search")
         self.search_btn.clicked.connect(self.search_clicked.emit)
         search_row.addWidget(self.search_btn)
@@ -76,6 +80,9 @@ class SearchView(QWidget):
 
     def get_destination(self) -> str:
         return self.dest_input.text().strip()
+
+    def get_date(self) -> str:
+        return self.date_input.text().strip()
 
     def set_status(self, text: str, is_error: bool = False):
         if is_error:

@@ -84,20 +84,35 @@ def project_event(db: Session, event: EventStore):
             flight = db.query(FlightRead).filter(FlightRead.id == booking.flight_id).first()
             if flight:
                 flight.available_seats += 1
-                
-    db.commit()
 
 # Rebuild projections from scratch (for recovery)
 def rebuild_read_models(db: Session):
-    # Clear existing booking read models
-    db.query(BookingRead).delete()
-    db.commit()
-    
-    # Reload seats count for flights from default seeds if needed
-    # But since we just want to run projections:
-    events = db.query(EventStore).order_by(EventStore.id.asc()).all()
-    for event in events:
-        project_event(db, event)
+    try:
+        # Clear existing booking read models
+        db.query(BookingRead).delete()
+        
+        # Reset flight seats to max capacities
+        capacities = {
+            "LY-101": 45,
+            "LY-202": 60,
+            "LY-303": 32,
+            "LY-404": 75,
+            "LY-505": 18
+        }
+        for flight_number, cap in capacities.items():
+            flight = db.query(FlightRead).filter(FlightRead.flight_number == flight_number).first()
+            if flight:
+                flight.available_seats = cap
+                
+        # Replay events
+        events = db.query(EventStore).order_by(EventStore.id.asc()).all()
+        for event in events:
+            project_event(db, event)
+            
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
 
 # ==========================================
 # API ROUTES (CQRS Split)
@@ -110,6 +125,14 @@ def book_flight(
     current_user: UserRead = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Validate booking inputs
+    p_name = request.passenger_name.strip()
+    p_pass = request.passport_number.strip()
+    if len(p_name) < 2 or not all(c.isalpha() or c.isspace() for c in p_name):
+        raise HTTPException(status_code=400, detail="Invalid passenger name. Use only letters and spaces.")
+    if len(p_pass) < 5 or not p_pass.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid passport number. Must be at least 5 alphanumeric characters.")
+
     # Validate flight exists and has seats
     flight = db.query(FlightRead).filter(FlightRead.id == request.flight_id).first()
     if not flight:
@@ -119,29 +142,47 @@ def book_flight(
         
     booking_id = str(uuid.uuid4())
     
+    # Mask passport: store only last 4 digits (e.g. XXXX-1234) to protect PII
+    passport_masked = "XXXX-" + p_pass[-4:] if len(p_pass) >= 4 else p_pass
+    
     # Create event payload
     event_payload = {
         "user_id": current_user.id,
         "flight_id": request.flight_id,
-        "passenger_name": request.passenger_name,
-        "passport_number": request.passport_number,
+        "passenger_name": p_name,
+        "passport_number": passport_masked,
         "price": flight.price
     }
     
-    # Store event
-    event = EventStore(
-        aggregate_id=booking_id,
-        aggregate_type="Booking",
-        sequence_number=1,
-        event_type="FlightBooked",
-        payload=json.dumps(event_payload)
-    )
-    db.add(event)
-    db.commit()
-    db.refresh(event)
-    
-    # Project event immediately to Read Model
-    project_event(db, event)
+    try:
+        # Optimistic version check
+        exists = db.query(EventStore).filter(
+            EventStore.aggregate_type == "Booking",
+            EventStore.aggregate_id == booking_id,
+            EventStore.sequence_number == 1
+        ).first()
+        if exists:
+            raise HTTPException(status_code=409, detail="Concurrency conflict: booking already exists")
+            
+        # Store event
+        event = EventStore(
+            aggregate_id=booking_id,
+            aggregate_type="Booking",
+            sequence_number=1,
+            event_type="FlightBooked",
+            payload=json.dumps(event_payload)
+        )
+        db.add(event)
+        db.flush()
+        
+        # Project event immediately to Read Model
+        project_event(db, event)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Database transaction failed: {str(e)}")
     
     return {"booking_id": booking_id, "status": "Success"}
 
@@ -152,38 +193,53 @@ def cancel_booking(
     current_user: UserRead = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Retrieve active booking
-    booking = db.query(BookingRead).filter(BookingRead.id == booking_id).first()
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
+    try:
+        # Retrieve active booking
+        booking = db.query(BookingRead).filter(BookingRead.id == booking_id).first()
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+            
+        if booking.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to cancel this booking")
+            
+        if booking.status == "Cancelled":
+            raise HTTPException(status_code=400, detail="Booking is already cancelled")
+            
+        # Get next event sequence number
+        last_event = db.query(EventStore).filter(
+            EventStore.aggregate_id == booking_id
+        ).order_by(EventStore.sequence_number.desc()).first()
         
-    if booking.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to cancel this booking")
+        seq = (last_event.sequence_number + 1) if last_event else 1
         
-    if booking.status == "Cancelled":
-        raise HTTPException(status_code=400, detail="Booking is already cancelled")
+        # Optimistic version check
+        exists = db.query(EventStore).filter(
+            EventStore.aggregate_type == "Booking",
+            EventStore.aggregate_id == booking_id,
+            EventStore.sequence_number == seq
+        ).first()
+        if exists:
+            raise HTTPException(status_code=409, detail="Concurrency conflict: duplicate event version")
+            
+        # Store cancellation event
+        event = EventStore(
+            aggregate_id=booking_id,
+            aggregate_type="Booking",
+            sequence_number=seq,
+            event_type="BookingCancelled",
+            payload=json.dumps({"cancelled_by_user": current_user.id})
+        )
+        db.add(event)
+        db.flush()
         
-    # Get next event sequence number
-    last_event = db.query(EventStore).filter(
-        EventStore.aggregate_id == booking_id
-    ).order_by(EventStore.sequence_number.desc()).first()
-    
-    seq = (last_event.sequence_number + 1) if last_event else 1
-    
-    # Store cancellation event
-    event = EventStore(
-        aggregate_id=booking_id,
-        aggregate_type="Booking",
-        sequence_number=seq,
-        event_type="BookingCancelled",
-        payload=json.dumps({"cancelled_by_user": current_user.id})
-    )
-    db.add(event)
-    db.commit()
-    db.refresh(event)
-    
-    # Project cancellation event to Read Model
-    project_event(db, event)
+        # Project cancellation event to Read Model
+        project_event(db, event)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Database transaction failed: {str(e)}")
     
     return {"booking_id": booking_id, "status": "Cancelled"}
 
@@ -236,7 +292,10 @@ def get_my_orders(
 
 # QUERY: Statistics for Graphs (Read Model)
 @router.get("/statistics", response_model=AnalyticsResponse)
-def get_statistics(db: Session = Depends(get_db)):
+def get_statistics(
+    current_user: UserRead = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     # 1. Average price by destination
     price_stats_raw = db.query(
         FlightRead.destination,
@@ -268,13 +327,7 @@ def get_statistics(db: Session = Depends(get_db)):
         
     # If no bookings exist yet, we put some realistic seed statistics for demo/display purposes,
     # or just show actual numbers
-    total_real = sum(monthly_counts.values())
-    if total_real == 0:
-        # Seed mock trends for display before any real orders are made
-        mock_data = {"Jan": 5, "Feb": 8, "Mar": 12, "Apr": 19, "May": 25, "Jun": 32, "Jul": 45, "Aug": 48, "Sep": 35, "Oct": 20, "Nov": 10, "Dec": 8}
-        booking_volume = [BookingVolumeResponse(month=k, count=v) for k, v in mock_data.items()]
-    else:
-        booking_volume = [BookingVolumeResponse(month=m, count=monthly_counts[m]) for m in months]
+    booking_volume = [BookingVolumeResponse(month=m, count=monthly_counts[m]) for m in months]
         
     return AnalyticsResponse(
         avg_prices=avg_prices,

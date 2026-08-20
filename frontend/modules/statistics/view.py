@@ -48,6 +48,13 @@ class StatisticsView(QWidget):
         self.line_chart_view.setStyleSheet("background-color: #161925; border-radius: 10px; border: 1px solid #232d3f;")
         charts_layout.addWidget(self.line_chart_view)
 
+        # Info Label for Empty State
+        self.info_label = QLabel("No active bookings registered yet. Chart will populate after reservations are made.")
+        self.info_label.setStyleSheet("color: #94a3b8; font-size: 13px; font-weight: bold; background-color: #1e293b; padding: 8px; border-radius: 5px; border: 1px solid #334155;")
+        self.info_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.info_label)
+        self.info_label.hide()
+
         layout.addLayout(charts_layout)
         
         # Style titles
@@ -59,6 +66,12 @@ class StatisticsView(QWidget):
         self.line_chart.setBackgroundVisible(False)
 
     def update_charts(self, avg_prices: list[dict], volume: list[dict]):
+        # Check for empty booking volume state
+        total_bookings = sum(item["count"] for item in volume)
+        if total_bookings == 0:
+            self.info_label.show()
+        else:
+            self.info_label.hide()
         # Clear existing series & axes
         self.bar_chart.removeAllSeries()
         for axis in list(self.bar_chart.axes()):

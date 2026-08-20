@@ -1,0 +1,39 @@
+# Environments
+.env
+.env.dev
+.env.prod
+venv/
+C:/TravelVenv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Database files
+*.db
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+
+# IDE files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Course PDFs and docs
+*.pdf
+_פרויקט_סיום_הנדסת_מערכות_חלונות_תשפו_סמסטר_ב_51.pdf
+סילבוס תשפד.pdf
+מצגות*.pdf
+מצגת*.pdf

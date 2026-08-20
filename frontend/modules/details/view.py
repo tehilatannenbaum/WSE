@@ -131,15 +131,29 @@ class DetailsView(QWidget):
             self.book_btn.setText("Book This Flight Now")
 
     def set_weather_data(self, weather: dict):
-        temp = weather.get("temperature", 0.0)
+        if not weather or "detail" in weather:
+            err_msg = weather.get("detail", "Failed to connect to weather service.")
+            self.temp_lbl.setText("Error loading weather")
+            self.temp_lbl.setStyleSheet("font-weight: bold; color: #f87171; font-size: 14px;")
+            self.cond_lbl.setText(err_msg)
+            self.wind_lbl.setText("-")
+            return
+            
+        self.temp_lbl.setStyleSheet("font-weight: bold; color: #f59e0b; font-size: 16px;")
+        temp = weather.get("temperature")
         cond = weather.get("conditions", "Unknown")
-        wind = weather.get("windspeed", 0.0)
+        wind = weather.get("windspeed")
         
-        self.temp_lbl.setText(f"{temp}°C")
+        # Format values nicely
+        temp_val = f"{temp}°C" if temp is not None else "N/A"
+        wind_val = f"{wind} km/h" if wind is not None else "N/A"
+        
+        self.temp_lbl.setText(temp_val)
         self.cond_lbl.setText(cond)
-        self.wind_lbl.setText(f"{wind} km/h")
+        self.wind_lbl.setText(wind_val)
 
     def show_weather_loading(self):
+        self.temp_lbl.setStyleSheet("font-weight: bold; color: #f59e0b; font-size: 16px;")
         self.temp_lbl.setText("Updating weather forecast...")
         self.cond_lbl.setText("-")
         self.wind_lbl.setText("-")

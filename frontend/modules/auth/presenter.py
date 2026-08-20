@@ -1,9 +1,12 @@
+from PySide6.QtCore import QObject
 from frontend.core.api_client import api_client
 from frontend.core.event_bus import event_bus
+from frontend.core.worker import RequestWorker
 from frontend.modules.auth.view import AuthView
 
-class AuthPresenter:
+class AuthPresenter(QObject):
     def __init__(self, view: AuthView):
+        super().__init__()
         self.view = view
         # Bind view signals to presenter slots
         self.view.login_clicked.connect(self.handle_login)
@@ -18,21 +21,36 @@ class AuthPresenter:
             return
 
         self.view.clear_status()
+        self.view.login_btn.setEnabled(False)
+        self.view.login_btn.setText("Signing In...")
         
-        # Call API Client
-        res, status_code = api_client.login(username, password)
+        self.login_worker = RequestWorker(api_client.login, username, password)
+        self.login_worker.finished.connect(self.on_login_completed)
+        self.login_worker.start()
+
+    def on_login_completed(self, result):
+        res, status_code = result
         if status_code == 200:
-            # Login successful, fetch profile
-            profile, prof_status = api_client.get_profile()
-            if prof_status == 200:
-                self.view.clear_inputs()
-                # Notify application that user has authenticated
-                event_bus.emit("user_logged_in", profile)
-            else:
-                self.view.set_login_error("Failed to retrieve user profile.")
+            # Login successful, fetch profile in background too
+            self.profile_worker = RequestWorker(api_client.get_profile)
+            self.profile_worker.finished.connect(self.on_profile_completed)
+            self.profile_worker.start()
         else:
+            self.view.login_btn.setEnabled(True)
+            self.view.login_btn.setText("Sign In")
             err_msg = res.get("detail", "Incorrect username or password.")
             self.view.set_login_error(err_msg)
+
+    def on_profile_completed(self, result):
+        profile, prof_status = result
+        self.view.login_btn.setEnabled(True)
+        self.view.login_btn.setText("Sign In")
+        if prof_status == 200:
+            self.view.clear_inputs()
+            # Notify application that user has authenticated
+            event_bus.emit("user_logged_in", profile)
+        else:
+            self.view.set_login_error("Failed to retrieve user profile.")
 
     def handle_register(self):
         username = self.view.get_reg_username()
@@ -48,12 +66,23 @@ class AuthPresenter:
             return
 
         self.view.clear_status()
+        self.view.register_btn.setEnabled(False)
+        self.view.register_btn.setText("Creating Account...")
         
-        # Call API Client
-        res, status_code = api_client.register(username, password, email)
+        self.reg_worker = RequestWorker(api_client.register, username, password, email)
+        self.reg_worker.finished.connect(self.on_register_completed)
+        self.reg_worker.start()
+
+    def on_register_completed(self, result):
+        res, status_code = result
+        self.view.register_btn.setEnabled(True)
+        self.view.register_btn.setText("Create Account")
+        
+        username = self.view.get_reg_username()
+        
         if status_code == 201:
             self.view.set_reg_success("Registration successful! You can now log in.")
-            # Switch back to login form after a short delay or let user click
+            # Switch back to login form
             self.view.login_user_input.setText(username)
             self.view.login_pass_input.clear()
             self.view.show_login_layout()

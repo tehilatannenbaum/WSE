@@ -27,9 +27,9 @@ class EventStore(Base):
     payload = Column(Text, nullable=False)  # JSON serialized data
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-    # Sequence number must be unique per aggregate
+    # Sequence number must be unique per aggregate type and ID
     __table_args__ = (
-        UniqueConstraint("aggregate_id", "sequence_number", name="uq_aggregate_seq"),
+        UniqueConstraint("aggregate_type", "aggregate_id", "sequence_number", name="uq_aggregate_seq"),
     )
 
 # ==========================================

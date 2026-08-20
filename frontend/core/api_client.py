@@ -1,3 +1,4 @@
+import os
 import requests
 import logging
 
@@ -9,7 +10,7 @@ class APIClient:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(APIClient, cls).__new__(cls)
-            cls._instance.base_url = "http://localhost:8080/api"
+            cls._instance.base_url = os.getenv("API_BASE_URL", "http://localhost:8080/api")
             cls._instance.token = None
         return cls._instance
 
@@ -60,13 +61,15 @@ class APIClient:
             logger.error(f"API get profile error: {e}")
             return {"detail": "Server connection failed"}, 503
 
-    def search_flights(self, origin=None, destination=None):
+    def search_flights(self, origin=None, destination=None, date=None):
         url = f"{self.base_url}/flights/search"
         params = {}
         if origin:
             params["origin"] = origin
         if destination:
             params["destination"] = destination
+        if date:
+            params["date"] = date
         try:
             response = requests.get(url, params=params, timeout=5)
             return response.json(), response.status_code
@@ -118,7 +121,7 @@ class APIClient:
     def get_statistics(self):
         url = f"{self.base_url}/bookings/statistics"
         try:
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, headers=self._get_headers(), timeout=5)
             return response.json(), response.status_code
         except Exception as e:
             logger.error(f"API get statistics error: {e}")
@@ -128,7 +131,7 @@ class APIClient:
         url = f"{self.base_url}/ai/ask"
         payload = {"query": query}
         try:
-            response = requests.post(url, json=payload, timeout=20) # AI might take longer
+            response = requests.post(url, json=payload, headers=self._get_headers(), timeout=20) # AI might take longer
             return response.json(), response.status_code
         except Exception as e:
             logger.error(f"API ask AI error: {e}")

@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     OLLAMA_HOST: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "tinyllama"
-    CLOUDINARY_URL: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
