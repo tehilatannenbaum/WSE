@@ -8,6 +8,7 @@ class BookingPresenter(QObject):
     def __init__(self, view: BookingView):
         super().__init__()
         self.view = view
+        self._active_workers = set()
         
         self.view.book_submitted.connect(self.handle_booking_submission)
         self.view.cancel_clicked.connect(self.handle_booking_cancellation)
@@ -17,14 +18,35 @@ class BookingPresenter(QObject):
         event_bus.subscribe("initiate_booking", self.on_initiate_booking)
         event_bus.subscribe("bookings_updated", self.load_history)
 
+    def _start_worker(self, attr_name: str, func, *args, on_completed, **kwargs):
+        # Prevent starting same operation type simultaneously
+        if hasattr(self, attr_name):
+            old_worker = getattr(self, attr_name)
+            if old_worker and old_worker.isRunning():
+                return None
+        
+        worker = RequestWorker(func, *args, **kwargs)
+        setattr(self, attr_name, worker)
+        self._active_workers.add(worker)
+        
+        # Connect signals for cleanup and completion
+        worker.finished.connect(lambda res: self._active_workers.discard(worker))
+        worker.finished.connect(worker.deleteLater)
+        worker.finished.connect(on_completed)
+        worker.start()
+        return worker
+
     def on_user_logged_in(self, user_profile: dict):
         self.load_history()
 
     def on_initiate_booking(self, flight_id: int):
         self.view.set_status("Loading flight data...")
-        self.prefill_worker = RequestWorker(api_client.get_flight_details, flight_id)
-        self.prefill_worker.finished.connect(self.on_prefill_completed)
-        self.prefill_worker.start()
+        self._start_worker(
+            "_prefill_worker",
+            api_client.get_flight_details,
+            flight_id,
+            on_completed=self.on_prefill_completed
+        )
 
     def on_prefill_completed(self, result):
         flight, status = result
@@ -36,9 +58,11 @@ class BookingPresenter(QObject):
 
     def load_history(self):
         self.view.set_table_status("Loading reservation history...")
-        self.history_worker = RequestWorker(api_client.get_my_orders)
-        self.history_worker.finished.connect(self.on_history_completed)
-        self.history_worker.start()
+        self._start_worker(
+            "_history_worker",
+            api_client.get_my_orders,
+            on_completed=self.on_history_completed
+        )
 
     def on_history_completed(self, result):
         bookings, status = result
@@ -72,9 +96,14 @@ class BookingPresenter(QObject):
         self.view.submit_btn.setEnabled(False)
         self.view.submit_btn.setText("Booking...")
         
-        self.book_worker = RequestWorker(api_client.book_flight, flight_id, passenger_name, passport_number)
-        self.book_worker.finished.connect(self.on_booking_completed)
-        self.book_worker.start()
+        self._start_worker(
+            "_book_worker",
+            api_client.book_flight,
+            flight_id,
+            passenger_name,
+            passport_number,
+            on_completed=self.on_booking_completed
+        )
 
     def on_booking_completed(self, result):
         res, status = result
@@ -83,7 +112,7 @@ class BookingPresenter(QObject):
         if status == 201:
             self.view.set_status("Booking confirmed successfully!")
             self.view.clear_form()
-            self.load_history()
+            # Only emitbookings_updated event, which triggers load_history automatically
             event_bus.emit("bookings_updated")
         else:
             err_msg = res.get("detail", "Failed to book flight. The flight might be sold out.")
@@ -93,16 +122,21 @@ class BookingPresenter(QObject):
         self.view.set_table_status("Processing cancellation...")
         self.view.cancel_btn.setEnabled(False)
         
-        self.cancel_worker = RequestWorker(api_client.cancel_booking, booking_id)
-        self.cancel_worker.finished.connect(self.on_cancellation_completed)
-        self.cancel_worker.start()
+        self._start_worker(
+            "_cancel_worker",
+            api_client.cancel_booking,
+            booking_id,
+            on_completed=self.on_cancellation_completed
+        )
 
     def on_cancellation_completed(self, result):
         res, status = result
         if status == 200:
             self.view.set_table_status("Booking cancelled successfully!")
-            self.load_history()
+            # Only emit bookings_updated, which triggers load_history automatically
             event_bus.emit("bookings_updated")
         else:
             err_msg = res.get("detail", "Failed to cancel booking.")
             self.view.set_table_status(err_msg, is_error=True)
+            # Restore Cancel button correctly if cancellation fails
+            self.view.handle_selection_changed()

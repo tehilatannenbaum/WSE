@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from backend.app.database import get_db, EventStore, BookingRead, FlightRead
 from backend.app.auth.service import get_current_user, UserRead
 
@@ -57,6 +58,10 @@ def project_event(db: Session, event: EventStore):
     payload = json.loads(event.payload)
     
     if event.event_type == "FlightBooked":
+        # For testing transaction atomicity: cause deliberate failure if passenger name matches
+        if payload.get("passenger_name") == "TriggerProjectionFailure":
+            raise RuntimeError("Deliberate projection failure for testing atomicity")
+
         # Create booking read model
         booking_read = BookingRead(
             id=event.aggregate_id,
@@ -91,20 +96,12 @@ def rebuild_read_models(db: Session):
         # Clear existing booking read models
         db.query(BookingRead).delete()
         
-        # Reset flight seats to max capacities
-        capacities = {
-            "LY-101": 45,
-            "LY-202": 60,
-            "LY-303": 32,
-            "LY-404": 75,
-            "LY-505": 18
-        }
-        for flight_number, cap in capacities.items():
-            flight = db.query(FlightRead).filter(FlightRead.flight_number == flight_number).first()
-            if flight:
-                flight.available_seats = cap
+        # Reset flight seats to max capacities dynamically from database model values
+        flights = db.query(FlightRead).all()
+        for flight in flights:
+            flight.available_seats = flight.capacity
                 
-        # Replay events
+        # Replay events in deterministic order
         events = db.query(EventStore).order_by(EventStore.id.asc()).all()
         for event in events:
             project_event(db, event)
@@ -178,6 +175,9 @@ def book_flight(
         # Project event immediately to Read Model
         project_event(db, event)
         db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Concurrency conflict: duplicate event version")
     except Exception as e:
         db.rollback()
         if isinstance(e, HTTPException):
@@ -207,6 +207,7 @@ def cancel_booking(
             
         # Get next event sequence number
         last_event = db.query(EventStore).filter(
+            EventStore.aggregate_type == "Booking",
             EventStore.aggregate_id == booking_id
         ).order_by(EventStore.sequence_number.desc()).first()
         
@@ -235,6 +236,9 @@ def cancel_booking(
         # Project cancellation event to Read Model
         project_event(db, event)
         db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Concurrency conflict: duplicate event version")
     except Exception as e:
         db.rollback()
         if isinstance(e, HTTPException):

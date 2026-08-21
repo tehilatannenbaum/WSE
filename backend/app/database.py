@@ -54,6 +54,7 @@ class FlightRead(Base):
     departure_time = Column(String(50), nullable=False)  # YYYY-MM-DD HH:MM
     price = Column(Float, nullable=False)
     available_seats = Column(Integer, nullable=False)
+    capacity = Column(Integer, nullable=False)
     image_url = Column(String(500), nullable=True)
 
 class BookingRead(Base):

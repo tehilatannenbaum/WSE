@@ -8,6 +8,7 @@ class StatisticsPresenter(QObject):
     def __init__(self, view: StatisticsView):
         super().__init__()
         self.view = view
+        self._active_workers = set()
         
         # Subscribe to bookings updates and auth notifications
         event_bus.subscribe("bookings_updated", self.load_statistics)
@@ -16,14 +17,32 @@ class StatisticsPresenter(QObject):
         # Initial load
         self.load_statistics()
 
+    def _start_worker(self, attr_name: str, func, *args, on_completed, **kwargs):
+        if hasattr(self, attr_name):
+            old_worker = getattr(self, attr_name)
+            if old_worker and old_worker.isRunning():
+                return None
+        
+        worker = RequestWorker(func, *args, **kwargs)
+        setattr(self, attr_name, worker)
+        self._active_workers.add(worker)
+        
+        worker.finished.connect(lambda res: self._active_workers.discard(worker))
+        worker.finished.connect(worker.deleteLater)
+        worker.finished.connect(on_completed)
+        worker.start()
+        return worker
+
     def on_user_logged_in(self, user_profile: dict):
         self.load_statistics()
 
     def load_statistics(self):
         # Fetch statistics asynchronously to avoid freezing UI thread
-        self.worker = RequestWorker(api_client.get_statistics)
-        self.worker.finished.connect(self.on_stats_loaded)
-        self.worker.start()
+        self._start_worker(
+            "_stats_worker",
+            api_client.get_statistics,
+            on_completed=self.on_stats_loaded
+        )
 
     def on_stats_loaded(self, result):
         stats, status = result

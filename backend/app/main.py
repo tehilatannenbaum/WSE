@@ -47,6 +47,7 @@ def startup_event():
                     departure_time="2026-08-25 08:30",
                     price=299.00,
                     available_seats=45,
+                    capacity=45,
                     image_url="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500"
                 ),
                 FlightRead(
@@ -56,6 +57,7 @@ def startup_event():
                     departure_time="2026-08-26 22:15",
                     price=899.50,
                     available_seats=60,
+                    capacity=60,
                     image_url="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=500"
                 ),
                 FlightRead(
@@ -65,6 +67,7 @@ def startup_event():
                     departure_time="2026-08-27 11:00",
                     price=349.99,
                     available_seats=32,
+                    capacity=32,
                     image_url="https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=500"
                 ),
                 FlightRead(
@@ -74,6 +77,7 @@ def startup_event():
                     departure_time="2026-08-28 06:45",
                     price=650.00,
                     available_seats=75,
+                    capacity=75,
                     image_url="https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=500"
                 ),
                 FlightRead(
@@ -83,6 +87,7 @@ def startup_event():
                     departure_time="2026-08-29 15:30",
                     price=180.00,
                     available_seats=18,
+                    capacity=18,
                     image_url="https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=500"
                 )
             ]

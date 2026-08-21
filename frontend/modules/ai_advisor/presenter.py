@@ -18,8 +18,13 @@ class AIAdvisorPresenter(QObject):
         super().__init__()
         self.view = view
         self.view.send_clicked.connect(self.send_query)
+        self._active_workers = set()
 
     def send_query(self):
+        # Prevent simultaneous query worker threads
+        if hasattr(self, "_ai_worker") and self._ai_worker and self._ai_worker.isRunning():
+            return
+
         query = self.view.get_query()
         if not query:
             return
@@ -29,9 +34,14 @@ class AIAdvisorPresenter(QObject):
         self.view.set_loading(True)
 
         # Launch request in background thread
-        self.worker = QueryWorker(query)
-        self.worker.finished.connect(self.handle_response)
-        self.worker.start()
+        worker = QueryWorker(query)
+        self._ai_worker = worker
+        self._active_workers.add(worker)
+        
+        worker.finished.connect(lambda res, st: self._active_workers.discard(worker))
+        worker.finished.connect(worker.deleteLater)
+        worker.finished.connect(self.handle_response)
+        worker.start()
 
     def handle_response(self, response: dict, status_code: int):
         self.view.set_loading(False)

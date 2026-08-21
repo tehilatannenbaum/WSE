@@ -41,6 +41,7 @@ def setup_db():
             departure_time="2026-08-25 08:30",
             price=299.00,
             available_seats=45,
+            capacity=45,
             image_url="http://example.com/paris"
         ),
         FlightRead(
@@ -51,6 +52,7 @@ def setup_db():
             departure_time="2026-08-26 22:15",
             price=899.50,
             available_seats=60,
+            capacity=60,
             image_url="http://example.com/tokyo"
         )
     ]
@@ -200,22 +202,28 @@ def test_repeatable_rebuild():
 
     rebuild_read_models(db)
     
-    # Verify booking projection created
+    # Verify booking projection created and seats decremented from capacity (45 -> 44)
     booking = db.query(BookingRead).filter(BookingRead.id == "b1").first()
     assert booking is not None
     assert booking.status == "Active"
+    
+    flight = db.query(FlightRead).filter(FlightRead.id == 1).first()
+    assert flight.available_seats == 44
 
     # Repeat rebuild
     rebuild_read_models(db)
     bookings = db.query(BookingRead).all()
     assert len(bookings) == 1
+    
+    flight = db.query(FlightRead).filter(FlightRead.id == 1).first()
+    assert flight.available_seats == 44
     db.close()
 
-def test_atomic_transaction_fail():
-    # Verify that if projection fails, event is not stored (rolled back)
-    # We will trigger validation error by inserting an event with invalid json payload
+def test_atomic_transaction_fail_api():
+    # Verify that if projection fails during transaction (after event is added), event is rolled back
     db = TestingSessionLocal()
     db.query(EventStore).delete()
+    db.query(BookingRead).delete()
     db.commit()
 
     login_data = {"username": "tester", "password": "secretpassword"}
@@ -223,16 +231,52 @@ def test_atomic_transaction_fail():
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    # Book with invalid flight_id to trigger HTTPException during transaction
+    # Book with TriggerProjectionFailure to raise exception in projection
     booking_req = {
-        "flight_id": 9999,  # Flight not found error
-        "passenger_name": "John Doe",
+        "flight_id": 1,
+        "passenger_name": "TriggerProjectionFailure",
         "passport_number": "AB12345"
     }
     response = client.post("/api/bookings/book", json=booking_req, headers=headers)
-    assert response.status_code == 404
+    assert response.status_code == 500
 
-    # Assert no events exist in EventStore
+    # Assert no events exist in EventStore and no bookings are projected
     events_count = db.query(EventStore).count()
     assert events_count == 0
+    bookings_count = db.query(BookingRead).count()
+    assert bookings_count == 0
     db.close()
+
+def test_optimistic_concurrency_api():
+    # 1. Login to get token
+    login_data = {"username": "tester", "password": "secretpassword"}
+    login_res = client.post("/api/auth/login", data=login_data)
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Book a flight normally
+    booking_req = {
+        "flight_id": 1,
+        "passenger_name": "Jane Concurrency",
+        "passport_number": "CD56789"
+    }
+    response = client.post("/api/bookings/book", json=booking_req, headers=headers)
+    assert response.status_code == 201
+    booking_id = response.json()["booking_id"]
+
+    # 3. Intercept Session.add to force a duplicate sequence number (1 instead of 2)
+    from sqlalchemy.orm import Session
+    from unittest.mock import patch
+    
+    original_add = Session.add
+    
+    def mock_add(self, instance):
+        if isinstance(instance, EventStore) and instance.event_type == "BookingCancelled":
+            # Force sequence_number to 1 to trigger duplicate sequence IntegrityError on commit
+            instance.sequence_number = 1
+        original_add(self, instance)
+
+    with patch.object(Session, 'add', mock_add):
+        response = client.post(f"/api/bookings/{booking_id}/cancel", headers=headers)
+        assert response.status_code == 409
+        assert "conflict" in response.json()["detail"].lower()

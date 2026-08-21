@@ -20,6 +20,7 @@ class DetailsPresenter(QObject):
         super().__init__()
         self.view = view
         self.view.book_clicked.connect(self.handle_book)
+        self._active_workers = set()
         
         # Subscribe to global flight selection events
         event_bus.subscribe("flight_selected", self.on_flight_selected)
@@ -29,10 +30,22 @@ class DetailsPresenter(QObject):
         self.view.set_flight_data(flight)
         self.view.show_weather_loading()
         
+        # If there is a running weather worker, disconnect its signal to avoid updating with stale data
+        if hasattr(self, "_weather_worker") and self._weather_worker and self._weather_worker.isRunning():
+            try:
+                self._weather_worker.finished.disconnect()
+            except Exception:
+                pass
+
         # Fetch weather in background thread to avoid freezing UI
-        self.worker = WeatherWorker(flight["destination"])
-        self.worker.finished.connect(self.view.set_weather_data)
-        self.worker.start()
+        worker = WeatherWorker(flight["destination"])
+        self._weather_worker = worker
+        self._active_workers.add(worker)
+        
+        worker.finished.connect(lambda res: self._active_workers.discard(worker))
+        worker.finished.connect(worker.deleteLater)
+        worker.finished.connect(self.view.set_weather_data)
+        worker.start()
 
     def handle_book(self, flight_id: int):
         # Notify globally that the user wishes to book this flight

@@ -145,7 +145,7 @@ class APIClient:
             return response.json(), response.status_code
         except Exception as e:
             logger.error(f"API weather error: {e}")
-            return {"conditions": "Offline 🌦️", "temperature": 0.0}, 503
+            return {"detail": "Weather service unavailable"}, 503
 
 # Global singleton client
 api_client = APIClient()
